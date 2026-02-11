@@ -1,14 +1,14 @@
 # slack-dev-bot
 
-Daily GitHub activity summarizer + interactive Slack bot powered by Claude.
+Daily GitHub activity summarizer + interactive Slack bot. Powered by Claude, or any LLM of your choice.
 
 Posts an AI-generated summary of your team's commits and PRs to Slack every morning. Team members can then ask follow-up questions by mentioning the bot.
 
 ## What it does
 
-**Daily summary (cron):** Scans all repos in your GitHub org, collects commits from every branch (deduplicated), gathers PRs, feeds everything to Claude with your project context, and posts a formatted summary to Slack.
+**Daily summary (cron):** Scans all repos in your GitHub org, collects commits from every branch (deduplicated), gathers PRs, feeds everything to Claude (or your preferred LLM) with your project context, and posts a formatted summary to Slack.
 
-**Interactive Q&A (bot):** Listens for @mentions in Slack. When someone asks a question like "what did Alice work on today?", it feeds the question + recent git data + project context to Claude and responds in a thread.
+**Interactive Q&A (bot):** Listens for @mentions in Slack. When someone asks a question like "what did Alice work on today?", it feeds the question + recent git data + project context to the LLM and responds in a thread.
 
 ## Example output
 
@@ -122,11 +122,11 @@ journalctl -u slack-dev-bot -f
 
 | File | Purpose |
 |---|---|
-| `git-summary.sh` | Cron script — collect git data, summarize with Claude, post to Slack |
+| `git-summary.sh` | Cron script — collect git data, summarize with Claude/LLM, post to Slack |
 | `bot.js` | Interactive Slack bot — Socket Mode, @mention Q&A |
 | `config.json` | Your configuration (gitignored — contains secrets) |
 | `config.example.json` | Template configuration |
-| `context.md` | Your project context for Claude (gitignored) |
+| `context.md` | Your project context for the LLM (gitignored) |
 | `context.example.md` | Template project context |
 | `setup.sh` | One-time setup script |
 
@@ -135,7 +135,7 @@ journalctl -u slack-dev-bot -f
 1. `git-summary.sh` uses `gh api` to list all repos in your org + extra repos
 2. For each repo: lists all branches, fetches commits since the lookback window, deduplicates by SHA
 3. Collects PRs (opened/merged/updated in the same window)
-4. Feeds structured data + `context.md` to `claude -p` with formatting instructions
+4. Feeds structured data + `context.md` to the configured LLM with formatting instructions
 5. Posts the result to Slack via webhook (cron) or responds in thread (bot)
 
 ## License
