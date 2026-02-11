@@ -208,18 +208,24 @@ In Slack, go to the channel and type:
 
 ## Step 4: Build your author map
 
-To find GitHub usernames for your team, check your org's members page:
+This is an important step. GitHub usernames often don't match real names, and people sometimes commit from multiple accounts. Without a proper author map, your summaries will show cryptic usernames instead of real names, and the same person's work might appear under two different entries.
+
+### Find all committers
+
+Check your org's members page:
 ```
 https://github.com/orgs/YOUR-ORG/people
 ```
 
-Or run this to see who's been committing recently:
+Or run this to discover all usernames that have been committing recently:
 ```bash
 gh api orgs/YOUR-ORG/repos --paginate --jq '.[].name' | while read repo; do
   gh api "repos/YOUR-ORG/$repo/commits?per_page=10" \
     --jq '.[] | .author.login // .commit.author.name' 2>/dev/null
 done | sort -u
 ```
+
+### Map usernames to display names
 
 Add each username to the `authorMap` in `config.json`:
 ```json
@@ -230,7 +236,29 @@ Add each username to the `authorMap` in `config.json`:
 }
 ```
 
-Usernames not in the map will show as-is in summaries (not an error, just less pretty).
+### Watch for alt accounts
+
+Some team members commit from multiple GitHub accounts (personal vs work, or old vs new). If you see an unfamiliar username in your summaries, look up the commit to check the email:
+
+```bash
+gh api repos/YOUR-ORG/REPO/commits/COMMIT_SHA \
+  --jq '{login: .author.login, name: .commit.author.name, email: .commit.author.email}'
+```
+
+If the email matches a known team member, add the alt username to the map. For example, one person committing as both `alice-gh` and `alice-work`:
+
+```json
+"authorMap": {
+  "alice-gh": "Alice",
+  "alice-work": "Alice"
+}
+```
+
+Both will be grouped under "Alice" in the summary.
+
+### Iterate after first run
+
+Run `bash git-summary.sh --dry-run --hours=168` (7 days) to see a week of activity. Check the raw data at the bottom of the output for any unmapped usernames, then update your author map accordingly. You'll likely need 1-2 iterations to catch everyone.
 
 ---
 
