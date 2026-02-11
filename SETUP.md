@@ -136,15 +136,37 @@ Edit `config.json`:
 cp context.example.md context.md
 ```
 
-Edit `context.md` with details about your project. This is optional but **strongly recommended** — it makes the summaries much more useful. Include:
+Edit `context.md` with details about your project. This is optional but **strongly recommended** — it's what turns generic commit-message parroting into actually useful summaries.
 
-- What your company/product does
-- What each repo is for
-- Who's on the team and what they work on
-- Domain-specific terminology
-- Current priorities
+### Why it matters
 
-The more context you provide, the better the AI summaries will be.
+Without context, the LLM only sees raw commit messages like:
+> `fix: update FNOL fractional state`
+
+It doesn't know what FNOL means, what "fractional" refers to, or why it matters. With context, it can produce:
+> *Yegor — fixed the multi-step claim reporting flow so users can edit individual answers*
+
+### What to include
+
+| Section | Why it helps | Example |
+|---|---|---|
+| **Company/product** | The LLM understands the domain | "Acme builds a SaaS platform for fleet management" |
+| **Repositories** | Knows what each repo does | "vehicle-api — REST API for vehicle tracking and telemetry" |
+| **Team members** | Groups work by expertise | "Alice — backend, payment integrations" |
+| **Terminology** | Translates jargon in commit messages | "ELD = Electronic Logging Device (driver hours tracking)" |
+| **Current priorities** | Improves the "Notable" summary line | "Q1 focus: real-time GPS tracking and ELD compliance" |
+| **Ticket pattern** | Extracts ticket references | "Tickets follow FLEET-xxx from Linear" |
+
+### Tips for writing good context
+
+- **Be specific about repos.** "backend stuff" is useless. "Express API serving the mobile app and admin dashboard, handles auth, fleet CRUD, and webhooks from GPS devices" is useful.
+- **Explain acronyms and internal names.** Every team has shorthand that makes no sense to outsiders. If people write "fix PDI flow" in commits, explain what PDI means.
+- **Update it when priorities change.** The "Notable" summary line uses current priorities to highlight what matters. Stale priorities = irrelevant highlights.
+- **List what people work on, not their job titles.** "Senior Engineer" tells the LLM nothing. "Works on payment integration and billing" helps it group and describe their commits.
+
+### Iterate
+
+Run a dry-run, read the summary, and ask: "Did it misunderstand anything?" If yes, add clarification to `context.md` and rerun. Usually takes 1-2 rounds to get right.
 
 ---
 
