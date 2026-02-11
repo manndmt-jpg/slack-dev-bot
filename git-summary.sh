@@ -21,6 +21,7 @@ SLACK_WEBHOOK=$(jq -r '.slackWebhookUrl' "$CONFIG")
 AUTHOR_MAP=$(jq -r '.authorMap' "$CONFIG")
 EXTRA_REPOS=$(jq -r '.extraRepos // [] | .[]' "$CONFIG")
 TICKET_PATTERN=$(jq -r '.ticketPattern // ""' "$CONFIG")
+LLM_CMD=$(jq -r '.llmCommand // "claude -p -"' "$CONFIG")
 
 if [ "$DRY_RUN" = false ] && [[ "$SLACK_WEBHOOK" == *"XXXXX"* ]]; then
   echo "$LOG_PREFIX ERROR: Slack webhook URL not configured"
@@ -170,11 +171,11 @@ $TICKET_RULE
 - Omit sections that would be empty
 - Output ONLY the Slack message — no code blocks, no explanation, no prefix/suffix"
 
-echo "$LOG_PREFIX Running Claude summary..."
-SUMMARY=$(claude -p "$PROMPT" 2>/dev/null)
+echo "$LOG_PREFIX Running LLM summary ($LLM_CMD)..."
+SUMMARY=$(echo "$PROMPT" | $LLM_CMD 2>/dev/null)
 
 if [ -z "$SUMMARY" ]; then
-  echo "$LOG_PREFIX ERROR: Empty summary from Claude"
+  echo "$LOG_PREFIX ERROR: Empty summary from LLM"
   exit 1
 fi
 

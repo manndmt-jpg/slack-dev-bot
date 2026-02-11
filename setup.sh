@@ -8,13 +8,26 @@ echo "=== slack-dev-bot setup ==="
 echo ""
 
 # Check prerequisites
-for cmd in node npm gh claude jq curl; do
+for cmd in node npm gh jq curl; do
   if ! command -v "$cmd" &>/dev/null; then
     echo "ERROR: $cmd is required but not found in PATH"
     exit 1
   fi
 done
 echo "[ok] All prerequisites found"
+
+# Check LLM command
+if [ -f "$SCRIPT_DIR/config.json" ]; then
+  LLM_CMD=$(jq -r '.llmCommand // "claude -p -"' "$SCRIPT_DIR/config.json")
+  LLM_BIN=$(echo "$LLM_CMD" | awk '{print $1}')
+  if ! command -v "$LLM_BIN" &>/dev/null; then
+    echo "WARN: LLM command '$LLM_BIN' not found in PATH"
+    echo "      Set llmCommand in config.json to your LLM CLI tool"
+    echo "      Options: claude -p -, llm -m gpt-4o, ollama run llama3.1"
+  else
+    echo "[ok] LLM command found: $LLM_CMD"
+  fi
+fi
 
 # Check gh auth
 if ! gh auth status &>/dev/null; then

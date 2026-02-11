@@ -35,7 +35,11 @@ Notable: Auth infrastructure overhaul underway alongside UI modernization.
 
 - **Node.js** 18+
 - **GitHub CLI** (`gh`) — authenticated with access to your org's repos
-- **Claude Code CLI** (`claude`) — with a valid API key
+- **An LLM CLI tool** — any command that reads stdin and writes stdout. Supported out of the box:
+  - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (`claude -p -`)
+  - [llm](https://llm.datasette.io/) (`llm -m gpt-4o`) — works with OpenAI, Gemini, and many others
+  - [Ollama](https://ollama.com/) (`ollama run llama3.1`) — fully local, free
+  - Any custom script that reads from stdin
 - **jq** and **curl**
 - A **Linux server** (for cron + systemd) — tested on Ubuntu 24.04
 
@@ -54,13 +58,14 @@ cp context.example.md context.md
 Edit `config.json`:
 - `org` — your GitHub organization name
 - `extraRepos` — additional repos outside the org (e.g. `["other-org/repo"]`)
+- `llmCommand` — CLI command for your LLM (default: `claude -p -`). See prerequisites for options
 - `slackWebhookUrl` — incoming webhook URL for your Slack channel
 - `slackBotToken` — bot token (`xoxb-...`) from your Slack app
 - `slackAppToken` — app-level token (`xapp-...`) for Socket Mode
 - `ticketPattern` — regex for ticket references in commits (e.g. `"PROJ-\\d+"`)
 - `authorMap` — GitHub username to display name mapping
 
-Edit `context.md` with your project details — this gives Claude context about your product, repos, team, and terminology for better summaries.
+Edit `context.md` with your project details — this gives the LLM context about your product, repos, team, and terminology for better summaries.
 
 ### 2. Create a Slack app
 

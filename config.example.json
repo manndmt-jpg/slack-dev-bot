@@ -1,6 +1,7 @@
 {
   "org": "your-github-org",
   "extraRepos": [],
+  "llmCommand": "claude -p -",
   "slackWebhookUrl": "https://hooks.slack.com/services/XXXXX/XXXXX/XXXXX",
   "slackBotToken": "xoxb-your-bot-token",
   "slackAppToken": "xapp-your-app-token",

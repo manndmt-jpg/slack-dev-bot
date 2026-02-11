@@ -43,17 +43,19 @@ function collectRecentData(hours = 24) {
   }
 }
 
-// Run Claude with a prompt (pipes via stdin to avoid shell escaping issues)
-function askClaude(prompt) {
+// Run LLM with a prompt (pipes via stdin)
+const LLM_CMD = CONFIG.llmCommand || 'claude -p -';
+
+function askLLM(prompt) {
   try {
-    const result = execSync('claude -p -', {
+    const result = execSync(LLM_CMD, {
       input: prompt,
       encoding: 'utf8',
       timeout: 120000,
     });
     return result.trim();
   } catch (e) {
-    console.error(`[${new Date().toISOString()}] Claude error:`, e.message);
+    console.error(`[${new Date().toISOString()}] LLM error:`, e.message);
     return null;
   }
 }
@@ -108,7 +110,7 @@ RULES:
 - If you don't have enough data to answer, say so
 - Do NOT wrap output in code blocks`;
 
-  const answer = askClaude(prompt);
+  const answer = askLLM(prompt);
 
   // Remove eyes reaction
   try {

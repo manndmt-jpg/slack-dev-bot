@@ -7,7 +7,7 @@ Complete walkthrough to get slack-dev-bot running on your server.
 - A **Linux server** (Ubuntu/Debian recommended) — any VPS works (Hetzner, DigitalOcean, AWS, etc.)
 - A **GitHub account** with access to your org's repos
 - A **Slack workspace** where you're an admin (to create apps)
-- An **Anthropic API key** for Claude
+- An **LLM CLI tool** — see Step 1 below for options
 
 Total setup time: ~20 minutes.
 
@@ -39,21 +39,43 @@ Verify access to your org:
 gh api orgs/YOUR-ORG-NAME/repos --jq '.[].name'
 ```
 
-### Claude Code CLI
+### LLM CLI tool
 
+The bot needs a command-line tool that accepts a prompt via stdin and returns the response. You have several options:
+
+**Option A: Claude Code CLI (recommended)**
 ```bash
 npm install -g @anthropic-ai/claude-code
-```
-
-Set your API key:
-```bash
 echo 'export ANTHROPIC_API_KEY="sk-ant-your-key-here"' >> ~/.bashrc
 source ~/.bashrc
 ```
+Config: `"llmCommand": "claude -p -"`
 
-Test it:
+**Option B: OpenAI via llm CLI**
 ```bash
-echo "Say hello" | claude -p -
+pip install llm
+llm keys set openai  # paste your API key
+```
+Config: `"llmCommand": "llm -m gpt-4o"`
+
+**Option C: Ollama (local, free)**
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+ollama pull llama3.1
+```
+Config: `"llmCommand": "ollama run llama3.1"`
+
+**Option D: Any custom command**
+Any command that reads a prompt from stdin and writes the response to stdout works. For example, a wrapper script:
+```bash
+#!/bin/bash
+curl -s https://api.example.com/chat -d @-
+```
+Config: `"llmCommand": "/path/to/your-script.sh"`
+
+**Test your choice:**
+```bash
+echo "Say hello in one sentence" | your-command-here
 ```
 
 ### Other tools
@@ -84,6 +106,7 @@ Edit `config.json`:
 {
   "org": "your-github-org",
   "extraRepos": [],
+  "llmCommand": "claude -p -",
   "slackWebhookUrl": "...",
   "slackBotToken": "xoxb-...",
   "slackAppToken": "xapp-...",
@@ -100,6 +123,7 @@ Edit `config.json`:
 |---|---|
 | `org` | Your GitHub organization name (from the URL: github.com/**your-org**) |
 | `extraRepos` | Repos outside your org to also scan, e.g. `["other-org/some-repo"]`. Leave `[]` if not needed |
+| `llmCommand` | CLI command that reads a prompt from stdin and writes response to stdout. See Step 1 for options |
 | `slackWebhookUrl` | From Step 3 below |
 | `slackBotToken` | From Step 3 below (starts with `xoxb-`) |
 | `slackAppToken` | From Step 3 below (starts with `xapp-`) |
@@ -304,6 +328,6 @@ cat logs/cron.log
 
 **Bot doesn't respond in Slack** — check that Socket Mode is enabled, the bot is invited to the channel, and `app_mention` event is subscribed. Check logs: `journalctl -u slack-dev-bot -f`
 
-**"Empty summary from Claude"** — Claude CLI might not be in PATH or the API key isn't set. Test with: `echo "test" | claude -p -`
+**"Empty summary from LLM"** — your LLM command might not be in PATH or the API key isn't set. Test with: `echo "Say hello" | your-llm-command`
 
-**Cron runs but nothing posts** — check `logs/cron.log`. Common issue: cron doesn't load your shell profile, so `claude` or `gh` aren't in PATH. Add full paths to the cron line or add `export PATH=...` at the top of `git-summary.sh`.
+**Cron runs but nothing posts** — check `logs/cron.log`. Common issue: cron doesn't load your shell profile, so `claude`/`ollama`/`gh` aren't in PATH. Add full paths to the cron line or add `export PATH=...` at the top of `git-summary.sh`.
