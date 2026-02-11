@@ -1,0 +1,12 @@
+{
+  "org": "your-github-org",
+  "extraRepos": [],
+  "slackWebhookUrl": "https://hooks.slack.com/services/XXXXX/XXXXX/XXXXX",
+  "slackBotToken": "xoxb-your-bot-token",
+  "slackAppToken": "xapp-your-app-token",
+  "ticketPattern": "PROJ-\\d+",
+  "authorMap": {
+    "github-username": "Display Name",
+    "another-user": "Another Name"
+  }
+}

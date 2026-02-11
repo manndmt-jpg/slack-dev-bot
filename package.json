@@ -1,0 +1,14 @@
+{
+  "name": "slack-dev-bot",
+  "version": "1.0.0",
+  "description": "Daily GitHub activity summarizer + interactive Slack bot powered by Claude",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js",
+    "setup": "bash setup.sh",
+    "dry-run": "bash git-summary.sh --dry-run"
+  },
+  "dependencies": {
+    "@slack/bolt": "^4.1.0"
+  }
+}
