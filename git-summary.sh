@@ -81,7 +81,7 @@ for full_repo in $REPO_LIST; do
       fi
       SEEN_SHAS="$SEEN_SHAS $sha"
       ALL_COMMITS="$ALL_COMMITS
-[$repo_name] $author: $message"
+[$repo_name] $author ($branch): $message | https://github.com/$full_repo/commit/$sha"
     done <<< "$COMMITS"
   done
 
@@ -91,12 +91,12 @@ for full_repo in $REPO_LIST; do
     --limit 50 2>/dev/null || echo "[]")
 
   # Filter PRs by date
-  FILTERED_PRS=$(echo "$PRS" | jq -r --arg since "$SINCE" '
+  FILTERED_PRS=$(echo "$PRS" | jq -r --arg since "$SINCE" --arg full_repo "$full_repo" '
     .[] | select(
       .createdAt >= $since or
       (.mergedAt != null and .mergedAt >= $since) or
       .updatedAt >= $since
-    ) | "[\(.state)] #\(.number) \(.title) by @\(.author.login)"
+    ) | "[\(.state)] #\(.number) \(.title) by @\(.author.login) | created:\(.createdAt[:10]) | https://github.com/\($full_repo)/pull/\(.number)"
   ' 2>/dev/null || echo "")
 
   if [ -n "$FILTERED_PRS" ]; then
@@ -153,19 +153,23 @@ $(echo "$AUTHOR_MAP" | jq -r 'to_entries | .[] | "  \(.key) → \(.value)"')
 
 Date: $TODAY
 
-COMMITS (format: [repo] author: commit message):
+COMMITS (format: [repo] author (branch): commit message | commit_url):
 $ALL_COMMITS
 
-PULL REQUESTS (format: [repo] [STATE] #number title by @author):
+PULL REQUESTS (format: [repo] [STATE] #number title by @author | created:YYYY-MM-DD | pr_url):
 $ALL_PRS
 
 FORMAT RULES:
 - Use Slack mrkdwn (*bold*, _italic_, \`code\`)
+- For links use Slack format: <URL|display text>
 - Start with: *Daily Dev Summary — $TODAY*
 - Group by person (use display names from mapping; if not in mapping, use the GitHub username as-is)
-- For each person, list repos and what they worked on — summarize related commits into one bullet, don't list every commit individually
+- For each person, summarize related commits into one bullet per repo — don't list every commit individually
 - Include commit count per person per repo in parentheses
-- Add a *PRs:* section if there are PRs (show repo, PR number, title, state, author)
+- For each person+repo bullet, include the branch name as a clickable link to a compare view (URL: https://github.com/ORG/REPO/compare/main...BRANCH). This shows the actual diff and commit history, not the file tree
+- If most commits are in one dominant repo, don't repeat the repo name on every bullet. Instead, note the main repo once (e.g. _Most activity in <repo_url|repo_name>_) and only label bullets for OTHER repos
+- Split PRs into two groups: *New PRs* (created today or yesterday) and *Open PRs* (created earlier, still active). Only show these headings if both groups have entries — if all are new or all are older, use a single *PRs:* heading
+- Link each PR number to its GitHub URL: <pr_url|repo #number>
 $TICKET_RULE
 - End with a *Notable:* line — one sentence highlighting the main theme or pattern of the day
 - Omit sections that would be empty
