@@ -16,6 +16,14 @@ for cmd in node npm gh jq curl; do
 done
 echo "[ok] All prerequisites found"
 
+# Check Node version (need 18+ for built-in fetch)
+NODE_MAJOR=$(node -v | sed 's/v//' | cut -d. -f1)
+if [ "$NODE_MAJOR" -lt 18 ]; then
+  echo "ERROR: Node 18+ required (found $(node -v)). Built-in fetch is needed."
+  exit 1
+fi
+echo "[ok] Node $(node -v)"
+
 # Check LLM command
 if [ -f "$SCRIPT_DIR/config.json" ]; then
   LLM_CMD=$(jq -r '.llmCommand // "claude -p -"' "$SCRIPT_DIR/config.json")
@@ -50,22 +58,58 @@ if [ ! -f "$SCRIPT_DIR/context.md" ]; then
   echo "  cp context.example.md context.md"
 fi
 
+# Check optional integrations
+echo ""
+echo "--- Optional integrations ---"
+
+if [ -n "${LINEAR_API_KEY:-}" ]; then
+  echo "[ok] LINEAR_API_KEY is set"
+  LINEAR_TEAM=$(jq -r '.linearTeamId // ""' "$SCRIPT_DIR/config.json")
+  if [ -n "$LINEAR_TEAM" ]; then
+    echo "[ok] linearTeamId configured"
+  else
+    echo "WARN: linearTeamId not set in config.json — Linear summaries will be skipped"
+  fi
+else
+  echo "[--] LINEAR_API_KEY not set — Linear features disabled (optional)"
+fi
+
+if [ -n "${NOTION_API_KEY:-}" ]; then
+  echo "[ok] NOTION_API_KEY is set"
+  NOTION_DB=$(jq -r '.notionDatabaseId // ""' "$SCRIPT_DIR/config.json")
+  if [ -n "$NOTION_DB" ]; then
+    echo "[ok] notionDatabaseId configured"
+  else
+    echo "WARN: notionDatabaseId not set in config.json — Notion specs will be skipped"
+  fi
+else
+  echo "[--] NOTION_API_KEY not set — Notion features disabled (optional)"
+fi
+
+if [ -n "${OPENROUTER_API_KEY:-}" ]; then
+  echo "[ok] OPENROUTER_API_KEY is set — hybrid LLM mode (Gemini pre-processing) enabled"
+else
+  echo "[--] OPENROUTER_API_KEY not set — single LLM mode (all data to llmCommand directly)"
+fi
+
 # Install Node dependencies
 echo ""
 echo "Installing dependencies..."
 cd "$SCRIPT_DIR"
 npm install --production
 
-# Make script executable
-chmod +x "$SCRIPT_DIR/git-summary.sh"
+# Make scripts executable
+chmod +x "$SCRIPT_DIR/git-summary.js" 2>/dev/null || true
+chmod +x "$SCRIPT_DIR/linear-summary.js" 2>/dev/null || true
+chmod +x "$SCRIPT_DIR/build-context.js" 2>/dev/null || true
 
 # Test dry run
 echo ""
 echo "Running dry-run test..."
-if bash "$SCRIPT_DIR/git-summary.sh" --dry-run --hours=48; then
-  echo "[ok] Dry run successful"
+if node "$SCRIPT_DIR/git-summary.js" --dry-run --hours=48; then
+  echo "[ok] Git summary dry run successful"
 else
-  echo "WARN: Dry run failed — check your config.json (org name, gh auth)"
+  echo "WARN: Git summary dry run failed — check your config.json (org name, gh auth)"
 fi
 
 # Set up systemd service (Linux only)
@@ -104,14 +148,20 @@ EOF
 
   # Set up cron
   echo ""
-  read -p "Set up daily cron job (Mon-Fri 7:00 UTC)? [y/N] " -n 1 -r
+  echo "Recommended cron schedule (Mon-Fri, adjust times to your timezone):"
+  echo "  50 5 * * 1-5  node $SCRIPT_DIR/build-context.js    (context builder)"
+  echo "  0  6 * * 1-5  node $SCRIPT_DIR/git-summary.js      (git summary)"
+  echo "  2  6 * * 1-5  node $SCRIPT_DIR/linear-summary.js   (linear summary)"
+  echo ""
+  read -p "Set up daily git summary cron job (Mon-Fri 7:00 UTC)? [y/N] " -n 1 -r
   echo ""
   if [[ $REPLY =~ ^[Yy]$ ]]; then
-    CRON_LINE="0 7 * * 1-5 $SCRIPT_DIR/git-summary.sh >> $SCRIPT_DIR/logs/cron.log 2>&1"
+    CRON_LINE="0 7 * * 1-5 $(which node) $SCRIPT_DIR/git-summary.js >> $SCRIPT_DIR/logs/cron.log 2>&1"
     mkdir -p "$SCRIPT_DIR/logs"
-    (crontab -l 2>/dev/null | grep -v "git-summary.sh"; echo "$CRON_LINE") | crontab -
+    (crontab -l 2>/dev/null | grep -v "git-summary"; echo "$CRON_LINE") | crontab -
     echo "[ok] Cron job added: $CRON_LINE"
     echo "     Edit with: crontab -e"
+    echo "     Add linear-summary.js and build-context.js cron lines manually if needed"
   fi
 fi
 
@@ -121,5 +171,10 @@ echo ""
 echo "Next steps:"
 echo "  1. Edit context.md with your project details (improves summary quality)"
 echo "  2. Invite the bot to your Slack channel: /invite @YourBotName"
-echo "  3. Test: bash git-summary.sh --dry-run"
+echo "  3. Test: node git-summary.js --dry-run"
 echo "  4. Mention the bot in Slack: @YourBotName what did the team work on today?"
+echo ""
+echo "Optional features (set env vars to enable):"
+echo "  - LINEAR_API_KEY + linearTeamId    → Linear ticket summaries"
+echo "  - NOTION_API_KEY + notionDatabaseId → Notion spec summaries in context"
+echo "  - OPENROUTER_API_KEY               → Hybrid LLM (Gemini pre-processes, your LLM formats)"

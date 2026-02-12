@@ -1,12 +1,14 @@
 {
   "name": "slack-dev-bot",
-  "version": "1.0.0",
-  "description": "Daily GitHub activity summarizer + interactive Slack bot powered by Claude",
+  "version": "2.0.0",
+  "description": "Daily GitHub + Linear activity summarizer + interactive Slack bot with hybrid LLM support",
   "main": "bot.js",
   "scripts": {
     "start": "node bot.js",
     "setup": "bash setup.sh",
-    "dry-run": "bash git-summary.sh --dry-run"
+    "dry-run": "node git-summary.js --dry-run",
+    "dry-run:linear": "node linear-summary.js --dry-run",
+    "dry-run:context": "node build-context.js --dry-run"
   },
   "dependencies": {
     "@slack/bolt": "^4.1.0"

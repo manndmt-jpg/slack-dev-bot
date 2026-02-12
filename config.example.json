@@ -9,5 +9,12 @@
   "authorMap": {
     "github-username": "Display Name",
     "another-user": "Another Name"
-  }
+  },
+  "linearTeamId": "",
+  "linearOrg": "your-linear-org",
+  "linearSlackWebhookUrl": "",
+  "linearAuthorMap": {
+    "linear-username": "Display Name"
+  },
+  "notionDatabaseId": ""
 }
